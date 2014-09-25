@@ -1,0 +1,62 @@
+<?php namespace Acme\Jobs;
+
+use Laracasts\Commander\Events\EventGenerator;
+
+class JobRepository implements JobRepositoryInterface {
+
+	use EventGenerator;
+	
+	protected $job;
+
+	function __construct(Job $job) {
+		$this->job = $job;
+	}
+
+	public function publish($title, $description)
+	{
+		$job = $this->job->create(compact('title','description'));
+
+        $this->raise(new JobWasPosted($job));
+
+        return $this;		
+	}
+
+	public function getAllJobs()
+	{
+		return $this->job->all();
+	}
+
+	public function getAllAvailableJobs()
+	{
+		return $this->job->where('status','=',1)->get();
+	}
+
+	public function getJob($id)
+	{
+		return $this->job->findOrFail($id);
+	}
+
+	public function updateJob($id,$title,$description)
+	{
+        $job = $this->job->findOrFail($id);
+        $job->title = $title;
+        $job->description = $description;
+        $job->save();
+        
+        $this->raise(new JobWasEdited($job));
+        
+        return $this;  
+	}
+
+	public function archive($id)
+	{
+        $job = $this->job->findOrFail($id);
+        $job->status = 0;
+        $job->save();
+
+        $this->raise(new JobWasFilled($job));
+        
+        return $this;         		
+	}
+
+}
